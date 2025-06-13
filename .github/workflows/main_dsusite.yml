@@ -1,4 +1,4 @@
-name: Build and deploy Laravel app to Azure Web App - dsusite
+name: Build and deploy Laravel API to Azure Web App - dsusite
 
 on:
   push:
@@ -13,17 +13,18 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2' # Laravel supports up to PHP 8.2
+          php-version: '8.2'
 
       - name: Install Composer dependencies
         run: composer install --no-dev --optimize-autoloader
 
-      - name: Set Laravel app key and cache config
+      - name: Prepare Laravel (key + config cache)
         run: |
           cp .env.example .env
           php artisan key:generate
@@ -34,15 +35,23 @@ jobs:
       - name: Prepare deployment package
         run: |
           mkdir deploy
-          rsync -av --exclude=deploy ./ deploy/
-          cp -r public/* deploy/  # Merge public folder into root
+
+          # Copy Laravel API structure
+          cp -r public/* deploy/                  # Front controller (index.php) to root
+          cp -r app bootstrap config database resources routes storage deploy/
+          cp artisan composer.* .env deploy/
+          cp -r vendor deploy/
+
+          # Fix paths inside index.php
+          sed -i 's|__DIR__.\'/../|__DIR__.\'/|g' deploy/index.php
+
           cd deploy
           zip -r ../release.zip .
 
-      - name: Upload artifact for deployment
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: laravel-app
+          name: laravel-api
           path: release.zip
 
   deploy:
@@ -59,7 +68,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: laravel-app
+          name: laravel-api
 
       - name: Unzip artifact
         run: unzip release.zip
@@ -67,9 +76,9 @@ jobs:
       - name: Azure login
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_A0D9E88B12544313B84B4F71570507DD }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_F7039930660943B2A0F6D590350E39DC }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_8ACD6D8409004D04B49D4A2B5C9DB734 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID }}
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
