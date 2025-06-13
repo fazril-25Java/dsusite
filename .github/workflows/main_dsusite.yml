@@ -34,7 +34,7 @@ jobs:
       - name: Prepare deployment package
         run: |
           mkdir deploy
-          cp -r * deploy/
+          rsync -av --exclude=deploy ./ deploy/
           cp -r public/* deploy/  # Merge public folder into root
           cd deploy
           zip -r ../release.zip .
