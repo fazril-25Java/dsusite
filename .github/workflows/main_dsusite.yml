@@ -24,7 +24,7 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-dev --optimize-autoloader
 
-      - name: Prepare Laravel (key + config cache)
+      - name: Prepare Laravel app
         run: |
           cp .env.example .env
           php artisan key:generate
@@ -36,14 +36,14 @@ jobs:
         run: |
           mkdir deploy
 
-          # Copy Laravel API structure
-          cp -r public/* deploy/                  # Front controller (index.php) to root
+          # Copy Laravel structure
+          cp -r public/* deploy/                          # Front controller to root
           cp -r app bootstrap config database resources routes storage deploy/
           cp artisan composer.* .env deploy/
           cp -r vendor deploy/
 
-          # Fix paths inside index.php
-          sed -i 's|__DIR__.\'/../|__DIR__.\'/|g' deploy/index.php
+          # Fix Laravel public path
+          sed -i "s|__DIR__\.'/../|__DIR__\.'/|g" deploy/index.php
 
           cd deploy
           zip -r ../release.zip .
