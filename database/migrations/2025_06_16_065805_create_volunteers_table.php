@@ -13,6 +13,11 @@ return new class extends Migration
     {
         Schema::create('volunteers', function (Blueprint $table) {
             $table->id();
+            $table->string('name');
+            $table->string('email')->unique();
+            $table->string('phone_number')->nullable();
+            $table->text('skills')->nullable();
+            $table->text('availability')->nullable();
             $table->timestamps();
         });
     }
